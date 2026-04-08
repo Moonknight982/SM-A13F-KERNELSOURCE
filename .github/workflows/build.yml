@@ -55,6 +55,13 @@ jobs:
           ln -s $(which llvm-objcopy-12) toolchain/clang/host/linux-x86/clang-r383902/bin/llvm-objcopy
           ln -s $(which llvm-strip-12) toolchain/clang/host/linux-x86/clang-r383902/bin/llvm-strip
 
+      - name: Fix Kconfig issues
+        run: |
+          echo "=== Mali Kconfig problematic lines ==="
+          sed -n '25,32p' kernel_src/drivers/gpu/arm/Kconfig
+          echo "=== NPU Kconfig first line ==="
+          head -3 kernel_src/drivers/vision/npu/Kconfig
+      
       - name: Build kernel
         run: |
           cd kernel_src
