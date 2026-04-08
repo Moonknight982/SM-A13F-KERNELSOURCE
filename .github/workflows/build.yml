@@ -57,10 +57,15 @@ jobs:
 
       - name: Fix Kconfig issues
         run: |
-          echo "=== Mali Kconfig problematic lines ==="
+          # Fix Mali GPU Kconfig - hardcode Android 14 value
+          sed -i \
+            's/default MALI_BIFROST_R32P1 if \$(PLATFORM_VERSION) <= 12//' \
+            kernel_src/drivers/gpu/arm/Kconfig
+          sed -i \
+            's/default MALI_BIFROST_R38P1 if \$(PLATFORM_VERSION) >= 13/default MALI_BIFROST_R38P1/' \
+            kernel_src/drivers/gpu/arm/Kconfig
+          echo "=== Verify fix ==="
           sed -n '25,32p' kernel_src/drivers/gpu/arm/Kconfig
-          echo "=== NPU Kconfig first line ==="
-          head -3 kernel_src/drivers/vision/npu/Kconfig
       
       - name: Build kernel
         run: |
