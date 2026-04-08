@@ -1,0 +1,60 @@
+name: Build Droidspaces Kernel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            make bc libssl-dev \
+            libelf-dev bison flex \
+            python3 zip unzip wget
+
+      - name: Download kernel source
+        run: |
+          wget -O Kernel.tar.gz \
+            "https://github.com/Moonknight982/SM-A13F-KERNELSOURCE/releases/download/v1/Kernel.tar.gz"
+
+      - name: Extract kernel source
+        run: |
+          mkdir -p kernel_src
+          tar -xzf Kernel.tar.gz -C kernel_src
+
+      - name: Apply Droidspaces config patches
+        run: |
+          cd kernel_src
+          DEFCONFIG=arch/arm64/configs/exynos850-a13xx_defconfig
+          sed -i 's/# CONFIG_USER_NS is not set/CONFIG_USER_NS=y/' $DEFCONFIG
+          sed -i 's/# CONFIG_CGROUP_PIDS is not set/CONFIG_CGROUP_PIDS=y/' $DEFCONFIG
+          sed -i 's/# CONFIG_CGROUP_DEVICE is not set/CONFIG_CGROUP_DEVICE=y/' $DEFCONFIG
+          sed -i 's/# CONFIG_CHECKPOINT_RESTORE is not set/CONFIG_CHECKPOINT_RESTORE=y/' $DEFCONFIG
+          sed -i 's/# CONFIG_FHANDLE is not set/CONFIG_FHANDLE=y/' $DEFCONFIG
+          grep -q "CONFIG_IPC_NS" $DEFCONFIG || echo "CONFIG_IPC_NS=y" >> $DEFCONFIG
+          echo "=== Verifying ==="
+          grep -E "USER_NS|IPC_NS|CGROUP_PIDS|CGROUP_DEVICE|CHECKPOINT|FHANDLE" $DEFCONFIG
+
+      - name: Build kernel
+        run: |
+          cd kernel_src
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export ANDROID_MAJOR_VERSION=t
+          make exynos850-a13xx_defconfig
+          make -j$(nproc) Image
+
+      - name: Upload kernel Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-Image
+          path: kernel_src/arch/arm64/boot/Image
+          retention-days: 7
