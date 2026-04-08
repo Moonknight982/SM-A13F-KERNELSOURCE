@@ -43,11 +43,21 @@ jobs:
           echo "=== Verifying ==="
           grep -E "USER_NS|IPC_NS|CGROUP_PIDS|CGROUP_DEVICE|CHECKPOINT|FHANDLE" $DEFCONFIG
 
+      - name: Setup toolchain
+        run: |
+          cd kernel_src
+          sudo apt-get install -y clang lld llvm
+          mkdir -p toolchain/clang/host/linux-x86/clang-r383902/bin
+          ln -s $(which clang) toolchain/clang/host/linux-x86/clang-r383902/bin/clang
+          ln -s $(which ld.lld) toolchain/clang/host/linux-x86/clang-r383902/bin/ld.lld
+
       - name: Build kernel
         run: |
           cd kernel_src
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
+          export CLANG_TRIPLE=aarch64-linux-gnu-
+          export CC=clang
           export ANDROID_MAJOR_VERSION=t
           make exynos850-a13xx_defconfig
           make -j$(nproc) Image
