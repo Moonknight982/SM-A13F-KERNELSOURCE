@@ -45,11 +45,15 @@ jobs:
 
       - name: Setup toolchain
         run: |
+          sudo apt-get install -y clang-12 lld-12 llvm-12
           cd kernel_src
-          sudo apt-get install -y clang lld llvm
           mkdir -p toolchain/clang/host/linux-x86/clang-r383902/bin
-          ln -s $(which clang) toolchain/clang/host/linux-x86/clang-r383902/bin/clang
-          ln -s $(which ld.lld) toolchain/clang/host/linux-x86/clang-r383902/bin/ld.lld
+          ln -s $(which clang-12) toolchain/clang/host/linux-x86/clang-r383902/bin/clang
+          ln -s $(which ld.lld-12) toolchain/clang/host/linux-x86/clang-r383902/bin/ld.lld
+          ln -s $(which llvm-ar-12) toolchain/clang/host/linux-x86/clang-r383902/bin/llvm-ar
+          ln -s $(which llvm-nm-12) toolchain/clang/host/linux-x86/clang-r383902/bin/llvm-nm
+          ln -s $(which llvm-objcopy-12) toolchain/clang/host/linux-x86/clang-r383902/bin/llvm-objcopy
+          ln -s $(which llvm-strip-12) toolchain/clang/host/linux-x86/clang-r383902/bin/llvm-strip
 
       - name: Build kernel
         run: |
@@ -57,10 +61,11 @@ jobs:
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           export CLANG_TRIPLE=aarch64-linux-gnu-
-          export CC=clang
+          export CC=clang-12
+          export HOSTCC=gcc
           export ANDROID_MAJOR_VERSION=t
-          make exynos850-a13xx_defconfig
-          make -j$(nproc) Image
+          make CC=clang-12 HOSTCC=gcc exynos850-a13xx_defconfig
+          make CC=clang-12 HOSTCC=gcc -j$(nproc) Image
 
       - name: Upload kernel Image
         uses: actions/upload-artifact@v4
