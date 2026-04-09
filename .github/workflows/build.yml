@@ -55,7 +55,7 @@ jobs:
           ln -s $(which llvm-objcopy-12) toolchain/clang/host/linux-x86/clang-r383902/bin/llvm-objcopy
           ln -s $(which llvm-strip-12) toolchain/clang/host/linux-x86/clang-r383902/bin/llvm-strip
 
-      - name: Fix Kconfig issues
+      - name: Fix source issues
         run: |
           # Fix Mali GPU Kconfig - hardcode Android 14 value
           sed -i \
@@ -64,9 +64,15 @@ jobs:
           sed -i \
             's/default MALI_BIFROST_R38P1 if \$(PLATFORM_VERSION) >= 13/default MALI_BIFROST_R38P1/' \
             kernel_src/drivers/gpu/arm/Kconfig
-          echo "=== Verify fix ==="
+          echo "=== Verify Mali fix ==="
           sed -n '25,32p' kernel_src/drivers/gpu/arm/Kconfig
-      
+          # Fix radio-s610 pointer cast errors
+          sed -i \
+            's/(unsigned int)radio->dev/(unsigned int)(uintptr_t)radio->dev/g' \
+            kernel_src/drivers/media/radio/s610/radio-s610.c
+          echo "=== Verify radio fix ==="
+          grep "uintptr_t" kernel_src/drivers/media/radio/s610/radio-s610.c
+
       - name: Build kernel
         run: |
           cd kernel_src
@@ -77,8 +83,7 @@ jobs:
           export HOSTCC=gcc
           export ANDROID_MAJOR_VERSION=t
           make CC=clang-12 HOSTCC=gcc exynos850-a13xx_defconfig
-          make CC=clang-12 HOSTCC=gcc -j1 Image 2>&1 | tee build.log
-          grep -E "error:|Error" build.log | head -30
+          make CC=clang-12 HOSTCC=gcc -j$(nproc) Image
 
       - name: Upload kernel Image
         uses: actions/upload-artifact@v4
